@@ -1,103 +1,183 @@
-import Image from "next/image";
+'use client'
+
+import { useEffect, useState } from 'react'
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import { supabase } from '@/lib/supabase'
+
+interface TemperatureReading {
+  id: string
+  timestamp: string
+  outdoor_temp: string
+  indoor_temp: string
+  temp_differential: string
+}
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [data, setData] = useState<TemperatureReading[]>([])
+  const [loading, setLoading] = useState(true)
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  useEffect(() => {
+    fetchTemperatureData()
+  }, [])
+
+  const fetchTemperatureData = async () => {
+    try {
+      const { data: readings, error } = await supabase
+        .from('casa_fresca_readings')
+        .select('*')
+        .order('timestamp', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching data:', error)
+      } else {
+        setData(readings || [])
+      }
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const formatData = (data: TemperatureReading[]) => {
+    return data.map(reading => ({
+      time: new Date(reading.timestamp).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }),
+      outdoor: parseFloat(reading.outdoor_temp),
+      indoor: parseFloat(reading.indoor_temp)
+    }))
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading temperature data...</div>
+      </div>
+    )
+  }
+
+  const latestReading = data[data.length - 1]
+  const shouldCloseWindows = latestReading ? 
+    parseFloat(latestReading.outdoor_temp) > parseFloat(latestReading.indoor_temp) : false
+
+  const getImageUrl = (imageName: string) => {
+    const { data } = supabase.storage
+      .from('casa-fresca-assets')
+      .getPublicUrl(imageName)
+    return data.publicUrl
+  }
+
+  return (
+    <div className="min-h-screen bg-white font-sans">
+      <div className="max-w-sm mx-auto">
+        {/* Top banner image */}
+        <div className="w-full">
+          <img 
+            src={getImageUrl('top_new.png')} 
+            alt="Casa Fresca" 
+            className="w-full h-auto"
+          />
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+
+        {/* Temperature readings and window recommendation */}
+        <div className="mb-6 flex items-center px-4 mt-5">
+          <div className="w-16 h-16 flex-shrink-0">
+            <img 
+              src={getImageUrl(shouldCloseWindows ? 'windows_closed.png' : 'windows_open.png')} 
+              alt={shouldCloseWindows ? 'Close windows' : 'Open windows'} 
+              className="w-full h-full object-contain"
+            />
+          </div>
+          
+          <div className="flex-1 ml-4">
+            <table className="w-full text-center">
+              <tbody>
+                <tr>
+                  <td className="text-sm">DENTRO</td>
+                  <td></td>
+                  <td className="text-sm">FUERA</td>
+                </tr>
+                <tr>
+                  <td className="font-bold text-4xl whitespace-nowrap" style={{color: shouldCloseWindows ? '#7FB9D8' : '#DD9378'}}>
+                    {latestReading ? parseFloat(latestReading.indoor_temp).toFixed(1) : '--'}&nbsp;°C
+                  </td>
+                  <td className="w-1/3">
+                    <div className="text-2xl mt-1 font-sans" style={{color: '#bbb'}}>
+                      {shouldCloseWindows ? '<' : '>'}
+                    </div>
+                  </td>
+                  <td className="font-bold text-4xl whitespace-nowrap" style={{color: shouldCloseWindows ? '#DD9378' : '#7FB9D8'}}>
+                    {latestReading ? parseFloat(latestReading.outdoor_temp).toFixed(1) : '--'}&nbsp;°C
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Temperature chart */}
+        <div className="p-0">
+          <div className="h-64 mb-6">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={formatData(data)} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+                <CartesianGrid horizontal={true} vertical={false} stroke="#e5e7eb" />
+                <XAxis 
+                  dataKey="time" 
+                  tick={{ fontSize: 10 }}
+                  domain={['dataMin', 'dataMax']}
+                  ticks={[formatData(data)[formatData(data).length - 1]?.time]}
+                  tickFormatter={(value) => {
+                    const date = new Date(value);
+                    return date.toLocaleTimeString('en-US', { 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      hour12: false 
+                    });
+                  }}
+                />
+                <YAxis 
+                  tick={{ fontSize: 10 }}
+                />
+                <Tooltip 
+                  formatter={(value: any) => [
+                    typeof value === 'number' ? value.toFixed(1) + '°C' : value,
+                    ''
+                  ]}
+                  labelFormatter={(label) => `Time: ${label}`}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="outdoor" 
+                  stroke="#589684" 
+                  strokeWidth={2}
+                  dot={false}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="indoor" 
+                  stroke="#B27760" 
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <p className="text-center text-sm mb-4" style={{color: '#bbb'}}>Casa Fresca - León, España<br />
+Sistema de gestión de temperatura para dormir bien</p>
+          {/* Cat image at bottom */}
+          <div className="flex justify-center">
+            <img 
+              src={getImageUrl('cat.png')} 
+              alt="Cat" 
+              className="w-1/2 h-auto"
+            />
+          </div>
+        </div>
+      </div>
     </div>
-  );
+  )
 }
