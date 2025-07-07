@@ -22,6 +22,12 @@ export default function Home() {
 
   const fetchTemperatureData = async () => {
     try {
+      if (!supabase) {
+        console.error('Supabase client not available')
+        setLoading(false)
+        return
+      }
+
       const { data: readings, error } = await supabase
         .from('casa_fresca_readings')
         .select('*')
@@ -65,6 +71,7 @@ export default function Home() {
     parseFloat(latestReading.outdoor_temp) > parseFloat(latestReading.indoor_temp) : false
 
   const getImageUrl = (imageName: string) => {
+    if (!supabase) return ''
     const { data } = supabase.storage
       .from('casa-fresca-assets')
       .getPublicUrl(imageName)
