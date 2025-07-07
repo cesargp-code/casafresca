@@ -60,8 +60,8 @@ export default function Home() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-lg">Loading temperature data...</div>
+      <div className="min-h-screen flex items-center justify-center font-sans">
+        <div className="text-lg">CASA FRESCA está cargando...</div>
       </div>
     )
   }
@@ -80,7 +80,7 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white font-sans">
-      <div className="max-w-sm mx-auto">
+      <div className="max-w-md mx-auto">
         {/* Top banner image */}
         <div className="w-full">
           <img 
@@ -92,7 +92,7 @@ export default function Home() {
 
         {/* Temperature readings and window recommendation */}
         <div className="mb-6 flex items-center px-4 mt-5">
-          <div className="w-16 h-16 flex-shrink-0">
+          <div className="w-20 h-20 flex-shrink-0">
             <img 
               src={getImageUrl(shouldCloseWindows ? 'windows_closed.png' : 'windows_open.png')} 
               alt={shouldCloseWindows ? 'Close windows' : 'Open windows'} 
@@ -109,15 +109,17 @@ export default function Home() {
                   <td className="text-sm">FUERA</td>
                 </tr>
                 <tr>
-                  <td className="font-bold text-4xl whitespace-nowrap" style={{color: shouldCloseWindows ? '#7FB9D8' : '#DD9378'}}>
+                  <td className="font-bold text-3xl whitespace-nowrap" style={{color: shouldCloseWindows ? '#7FB9D8' : '#DD9378'}}>
                     {latestReading ? parseFloat(latestReading.indoor_temp).toFixed(1) : '--'}&nbsp;°C
                   </td>
                   <td className="w-1/3">
-                    <div className="text-2xl mt-1 font-sans" style={{color: '#bbb'}}>
-                      {shouldCloseWindows ? '<' : '>'}
-                    </div>
+                    <img 
+                      src={getImageUrl(shouldCloseWindows ? 'smaller_than.png' : 'greater_than.png')} 
+                      alt={shouldCloseWindows ? 'Indoor < Outdoor' : 'Indoor > Outdoor'} 
+                      className="h-6 mx-auto mt-1"
+                    />
                   </td>
-                  <td className="font-bold text-4xl whitespace-nowrap" style={{color: shouldCloseWindows ? '#DD9378' : '#7FB9D8'}}>
+                  <td className="font-bold text-3xl whitespace-nowrap" style={{color: shouldCloseWindows ? '#DD9378' : '#7FB9D8'}}>
                     {latestReading ? parseFloat(latestReading.outdoor_temp).toFixed(1) : '--'}&nbsp;°C
                   </td>
                 </tr>
@@ -130,7 +132,7 @@ export default function Home() {
         <div className="p-0">
           <div className="h-64 mb-6">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={formatData(data)} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
+              <LineChart data={formatData(data)} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
                 <CartesianGrid horizontal={true} vertical={false} stroke="#e5e7eb" />
                 <XAxis 
                   dataKey="time" 
@@ -148,13 +150,19 @@ export default function Home() {
                 />
                 <YAxis 
                   tick={{ fontSize: 10 }}
+                  width={30}
                 />
                 <Tooltip 
                   formatter={(value: any) => [
                     typeof value === 'number' ? value.toFixed(1) + '°C' : value,
                     ''
                   ]}
-                  labelFormatter={(label) => `Time: ${label}`}
+                  labelFormatter={(label) => `${label}`}
+                  contentStyle={{ 
+                    fontSize: '12px', 
+                    padding: '4px 8px',
+                    minWidth: 'auto'
+                  }}
                 />
                 <Line 
                   type="monotone" 
