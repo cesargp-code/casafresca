@@ -15,6 +15,7 @@ interface TemperatureReading {
 export default function Home() {
   const [data, setData] = useState<TemperatureReading[]>([])
   const [loading, setLoading] = useState(true)
+  const [timeRange, setTimeRange] = useState<'24h' | '7d'>('24h')
 
   useEffect(() => {
     fetchTemperatureData()
@@ -46,7 +47,16 @@ export default function Home() {
   }
 
   const formatData = (data: TemperatureReading[]) => {
-    return data.map(reading => ({
+    const now = new Date()
+    const cutoffTime = timeRange === '24h' 
+      ? new Date(now.getTime() - 24 * 60 * 60 * 1000)
+      : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+    
+    const filteredData = data.filter(reading => 
+      new Date(reading.timestamp) >= cutoffTime
+    )
+    
+    return filteredData.map(reading => ({
       time: new Date(reading.timestamp).toLocaleString('en-US', {
         month: 'short',
         day: 'numeric',
@@ -132,7 +142,11 @@ export default function Home() {
         <div className="p-0">
           <div className="h-64 mb-6">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={formatData(data)} margin={{ top: 5, right: 5, left: 0, bottom: 5 }}>
+              <LineChart 
+                data={formatData(data)} 
+                margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
+                style={{ outline: 'none' }}
+              >
                 <CartesianGrid horizontal={true} vertical={false} stroke="#e5e7eb" />
                 <XAxis 
                   dataKey="time" 
@@ -181,6 +195,31 @@ export default function Home() {
               </LineChart>
             </ResponsiveContainer>
           </div>
+
+          {/* Time range segmented control */}
+          <div className="flex bg-gray-100 rounded-lg p-1 mb-4 mx-4">
+            <button
+              onClick={() => setTimeRange('7d')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                timeRange === '7d'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              7 días
+            </button>
+            <button
+              onClick={() => setTimeRange('24h')}
+              className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+                timeRange === '24h'
+                  ? 'bg-white text-gray-900 shadow-sm'
+                  : 'text-gray-600 hover:text-gray-900'
+              }`}
+            >
+              24 horas
+            </button>
+          </div>
+
           <p className="text-center text-sm mb-4" style={{color: '#bbb'}}>Casa Fresca - León, España<br />
 Sistema de gestión de temperatura para dormir bien</p>
           {/* Cat image at bottom */}
