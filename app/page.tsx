@@ -72,7 +72,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center font-sans">
-        <div className="text-lg">CASA FRESCA está refrescando...</div>
+        <div className="text-lg">Refrescando CASA FRESCA...</div>
       </div>
     )
   }
@@ -129,60 +129,50 @@ export default function Home() {
         </div>
 
         {/* Temperature readings and window recommendation */}
-        <div className="mb-6 flex items-center px-4 mt-5">
-          <div className="w-20 h-20 flex-shrink-0">
-            <img 
-              src={getImageUrl(shouldCloseWindows ? 'windows_closed.png' : 'windows_open.png')} 
-              alt={shouldCloseWindows ? 'Close windows' : 'Open windows'} 
-              className="w-full h-full object-contain"
-            />
-          </div>
-          
-          <div className="flex-1 ml-4">
-            <table className="w-full text-center">
-              <tbody>
-                <tr>
-                  <td className="text-sm">DENTRO</td>
-                  <td></td>
-                  <td className="text-sm">FUERA</td>
-                </tr>
-                <tr>
-                  <td className="font-bold text-3xl whitespace-nowrap" style={{color: shouldCloseWindows ? '#7FB9D8' : '#DD9378'}}>
-                    {latestReading ? parseFloat(latestReading.indoor_temp).toFixed(1) : '--'}&nbsp;°C
-                  </td>
-                  <td className="w-1/3">
+        <div className="mb-6 px-4 mt-5">
+          <table className="w-full text-center">
+            <tbody>
+              <tr>
+                <td className="text-sm">DENTRO</td>
+                <td rowSpan={3} className="w-24 align-middle">
+                  <div className="flex justify-center">
                     <img 
-                      src={getImageUrl(shouldCloseWindows ? 'smaller_than.png' : 'greater_than.png')} 
-                      alt={shouldCloseWindows ? 'Indoor < Outdoor' : 'Indoor > Outdoor'} 
-                      className="h-6 mx-auto mt-1"
+                      src={getImageUrl(shouldCloseWindows ? 'windows_closed.png' : 'windows_open.png')} 
+                      alt={shouldCloseWindows ? 'Close windows' : 'Open windows'} 
+                      className="w-20 h-20 object-contain"
                     />
-                  </td>
-                  <td className="font-bold text-3xl whitespace-nowrap" style={{color: shouldCloseWindows ? '#DD9378' : '#7FB9D8'}}>
-                    {latestReading ? parseFloat(latestReading.outdoor_temp).toFixed(1) : '--'}&nbsp;°C
-                  </td>
-                </tr>
-                <tr>
-                  <td className="text-sm text-gray-500">
-                    {latestReading && data.length > 1 ? (
-                      (() => {
-                        const diff = get24hDifference(latestReading.indoor_temp, true)
-                        return diff !== null ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}°C ayer` : ''
-                      })()
-                    ) : ''}
-                  </td>
-                  <td></td>
-                  <td className="text-sm text-gray-500">
-                    {latestReading && data.length > 1 ? (
-                      (() => {
-                        const diff = get24hDifference(latestReading.outdoor_temp, false)
-                        return diff !== null ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}°C ayer` : ''
-                      })()
-                    ) : ''}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                  </div>
+                </td>
+                <td className="text-sm">FUERA</td>
+              </tr>
+              <tr>
+                <td className="font-bold text-3xl whitespace-nowrap" style={{color: shouldCloseWindows ? '#7FB9D8' : '#DD9378'}}>
+                  {latestReading ? parseFloat(latestReading.indoor_temp).toFixed(1) : '--'}&nbsp;°C
+                </td>
+                <td className="font-bold text-3xl whitespace-nowrap" style={{color: shouldCloseWindows ? '#DD9378' : '#7FB9D8'}}>
+                  {latestReading ? parseFloat(latestReading.outdoor_temp).toFixed(1) : '--'}&nbsp;°C
+                </td>
+              </tr>
+              <tr>
+                <td className="text-sm text-gray-500">
+                  {latestReading && data.length > 1 ? (
+                    (() => {
+                      const diff = get24hDifference(latestReading.indoor_temp, true)
+                      return diff !== null ? `${Math.abs(diff).toFixed(1)}°C ${diff > 0 ? 'más' : 'menos'} ayer` : ''
+                    })()
+                  ) : ''}
+                </td>
+                <td className="text-sm text-gray-500">
+                  {latestReading && data.length > 1 ? (
+                    (() => {
+                      const diff = get24hDifference(latestReading.outdoor_temp, false)
+                      return diff !== null ? `${Math.abs(diff).toFixed(1)}°C ${diff > 0 ? 'más' : 'menos'} ayer` : ''
+                    })()
+                  ) : ''}
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
 
         {/* Temperature chart */}
