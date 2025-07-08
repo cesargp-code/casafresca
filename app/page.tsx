@@ -57,11 +57,12 @@ export default function Home() {
     )
     
     return filteredData.map(reading => ({
-      time: new Date(reading.timestamp).toLocaleString('en-US', {
+      time: new Date(reading.timestamp).toLocaleString('es-ES', {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
-        minute: '2-digit'
+        minute: '2-digit',
+        hour12: false
       }),
       outdoor: parseFloat(reading.outdoor_temp),
       indoor: parseFloat(reading.indoor_temp)
@@ -71,7 +72,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center font-sans">
-        <div className="text-lg">CASA FRESCA está cargando...</div>
+        <div className="text-lg">CASA FRESCA está refrescando...</div>
       </div>
     )
   }
@@ -79,6 +80,33 @@ export default function Home() {
   const latestReading = data[data.length - 1]
   const shouldCloseWindows = latestReading ? 
     parseFloat(latestReading.outdoor_temp) > parseFloat(latestReading.indoor_temp) : false
+
+  // Calculate temperature difference from 24h ago
+  const get24hDifference = (currentTemp: string, isIndoor: boolean) => {
+    if (!latestReading) return null
+    
+    const currentTime = new Date(latestReading.timestamp)
+    const twentyFourHoursAgo = new Date(currentTime.getTime() - 24 * 60 * 60 * 1000)
+    
+    // Find the reading closest to 24h ago
+    const reading24hAgo = data.reduce((closest, reading) => {
+      const readingTime = new Date(reading.timestamp)
+      const closestTime = new Date(closest.timestamp)
+      
+      const readingDiff = Math.abs(readingTime.getTime() - twentyFourHoursAgo.getTime())
+      const closestDiff = Math.abs(closestTime.getTime() - twentyFourHoursAgo.getTime())
+      
+      return readingDiff < closestDiff ? reading : closest
+    }, data[0])
+    
+    if (!reading24hAgo) return null
+    
+    const current = parseFloat(currentTemp)
+    const past = parseFloat(isIndoor ? reading24hAgo.indoor_temp : reading24hAgo.outdoor_temp)
+    const diff = past - current
+    
+    return diff
+  }
 
   const getImageUrl = (imageName: string) => {
     if (!supabase) return ''
@@ -133,6 +161,25 @@ export default function Home() {
                     {latestReading ? parseFloat(latestReading.outdoor_temp).toFixed(1) : '--'}&nbsp;°C
                   </td>
                 </tr>
+                <tr>
+                  <td className="text-sm text-gray-500">
+                    {latestReading && data.length > 1 ? (
+                      (() => {
+                        const diff = get24hDifference(latestReading.indoor_temp, true)
+                        return diff !== null ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}°C ayer` : ''
+                      })()
+                    ) : ''}
+                  </td>
+                  <td></td>
+                  <td className="text-sm text-gray-500">
+                    {latestReading && data.length > 1 ? (
+                      (() => {
+                        const diff = get24hDifference(latestReading.outdoor_temp, false)
+                        return diff !== null ? `${diff > 0 ? '+' : ''}${diff.toFixed(1)}°C ayer` : ''
+                      })()
+                    ) : ''}
+                  </td>
+                </tr>
               </tbody>
             </table>
           </div>
@@ -140,12 +187,11 @@ export default function Home() {
 
         {/* Temperature chart */}
         <div className="p-0">
-          <div className="h-64 mb-6">
+          <div className="h-64 mb-1">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart 
                 data={formatData(data)} 
-                margin={{ top: 5, right: 5, left: 0, bottom: 5 }}
-                style={{ outline: 'none' }}
+                margin={{ top: 5, right: 15, left: 5, bottom: 5 }}
               >
                 <CartesianGrid horizontal={true} vertical={false} stroke="#e5e7eb" />
                 <XAxis 
@@ -168,8 +214,7 @@ export default function Home() {
                 />
                 <Tooltip 
                   formatter={(value: any) => [
-                    typeof value === 'number' ? value.toFixed(1) + '°C' : value,
-                    ''
+                    typeof value === 'number' ? value.toFixed(1) + '°C' : value
                   ]}
                   labelFormatter={(label) => `${label}`}
                   contentStyle={{ 
@@ -181,14 +226,14 @@ export default function Home() {
                 <Line 
                   type="monotone" 
                   dataKey="outdoor" 
-                  stroke="#589684" 
+                  stroke="#C11818" 
                   strokeWidth={2}
                   dot={false}
                 />
                 <Line 
                   type="monotone" 
                   dataKey="indoor" 
-                  stroke="#B27760" 
+                  stroke="#589684" 
                   strokeWidth={2}
                   dot={false}
                 />
@@ -197,7 +242,7 @@ export default function Home() {
           </div>
 
           {/* Time range segmented control */}
-          <div className="flex bg-gray-100 rounded-lg p-1 mb-4 mx-4">
+          <div className="flex bg-gray-100 rounded-lg p-1 mb-6 mx-4">
             <button
               onClick={() => setTimeRange('7d')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
@@ -220,7 +265,7 @@ export default function Home() {
             </button>
           </div>
 
-          <p className="text-center text-sm mb-4" style={{color: '#bbb'}}>Casa Fresca - León, España<br />
+          <p className="text-center text-sm mb-0" style={{color: '#bbb'}}>Casa Fresca - León, España<br />
 Sistema de gestión de temperatura para dormir bien</p>
           {/* Cat image at bottom */}
           <div className="flex justify-center">
