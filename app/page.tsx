@@ -158,7 +158,14 @@ export default function Home() {
                   {latestReading && data.length > 1 ? (
                     (() => {
                       const diff = get24hDifference(latestReading.indoor_temp, true)
-                      return diff !== null ? `${Math.abs(diff).toFixed(1)}°C ${diff > 0 ? 'más' : 'menos'} ayer` : ''
+                      return diff !== null ? (
+                        <>
+                          <span style={{ color: diff < 0 ? '#DD9378' : '#7FB9D8' }}>
+                            {diff < 0 ? '+' : ''}{(-diff).toFixed(1)}
+                          </span>
+                          {' que ayer'}
+                        </>
+                      ) : ''
                     })()
                   ) : ''}
                 </td>
@@ -166,7 +173,14 @@ export default function Home() {
                   {latestReading && data.length > 1 ? (
                     (() => {
                       const diff = get24hDifference(latestReading.outdoor_temp, false)
-                      return diff !== null ? `${Math.abs(diff).toFixed(1)}°C ${diff > 0 ? 'más' : 'menos'} ayer` : ''
+                      return diff !== null ? (
+                        <>
+                          <span style={{ color: diff < 0 ? '#DD9378' : '#7FB9D8' }}>
+                            {diff < 0 ? '+' : ''}{(-diff).toFixed(1)}
+                          </span>
+                          {' que ayer'}
+                        </>
+                      ) : ''
                     })()
                   ) : ''}
                 </td>
