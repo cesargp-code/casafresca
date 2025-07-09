@@ -16,6 +16,7 @@ export default function Home() {
   const [data, setData] = useState<TemperatureReading[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<'24h' | '7d'>('24h')
+  const [showMiau, setShowMiau] = useState(false)
 
   useEffect(() => {
     fetchTemperatureData()
@@ -114,6 +115,13 @@ export default function Home() {
       .from('casa-fresca-assets')
       .getPublicUrl(imageName)
     return data.publicUrl
+  }
+
+  const handleCatClick = () => {
+    setShowMiau(true)
+    setTimeout(() => {
+      setShowMiau(false)
+    }, 1500)
   }
 
   return (
@@ -272,12 +280,27 @@ export default function Home() {
           <p className="text-center text-sm mb-0" style={{color: '#bbb'}}>Casa Fresca - León, España<br />
 Sistema de gestión de temperatura para dormir bien</p>
           {/* Cat image at bottom */}
-          <div className="flex justify-center">
+          <div className="flex justify-center relative">
             <img 
               src={getImageUrl('cat.png')} 
               alt="Cat" 
-              className="w-1/2 h-auto"
+              className="w-1/2 h-auto cursor-pointer"
+              onClick={handleCatClick}
             />
+            {showMiau && (
+              <div 
+                className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2"
+                style={{
+                  animation: 'fadeUpAndOut 1.5s ease-out forwards'
+                }}
+              >
+                <div className="bg-white border-2 border-black rounded-lg px-2 py-1 relative shadow-lg">
+                  <span className="text-black font-bold text-sm">¡Miau!</span>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-6 border-r-6 border-t-6 border-l-transparent border-r-transparent border-t-black"></div>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 translate-y-[-2px] w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-white"></div>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
