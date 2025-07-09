@@ -121,7 +121,7 @@ export default function Home() {
     setShowMiau(true)
     setTimeout(() => {
       setShowMiau(false)
-    }, 1500)
+    }, 1000)
   }
 
   return (
@@ -169,7 +169,7 @@ export default function Home() {
                       return diff !== null ? (
                         <>
                           <span style={{ color: diff < 0 ? '#DD9378' : '#7FB9D8' }}>
-                            {diff < 0 ? '+' : ''}{(-diff).toFixed(1)}
+                          {(-diff).toFixed(1)}{diff < 0 ? ' más' : 'menos'}
                           </span>
                           {' que ayer'}
                         </>
@@ -184,7 +184,7 @@ export default function Home() {
                       return diff !== null ? (
                         <>
                           <span style={{ color: diff < 0 ? '#DD9378' : '#7FB9D8' }}>
-                            {diff < 0 ? '+' : ''}{(-diff).toFixed(1)}
+                            {(-diff).toFixed(1)}{diff < 0 ? ' más' : 'menos'}
                           </span>
                           {' que ayer'}
                         </>
@@ -231,7 +231,7 @@ export default function Home() {
                   labelFormatter={(label) => `${label}`}
                   contentStyle={{ 
                     fontSize: '12px', 
-                    padding: '4px 8px',
+                    padding: '4px 6px',
                     minWidth: 'auto'
                   }}
                 />
@@ -291,13 +291,12 @@ Sistema de gestión de temperatura para dormir bien</p>
               <div 
                 className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2"
                 style={{
-                  animation: 'fadeUpAndOut 1.5s ease-out forwards'
+                  animation: 'fadeUpAndOut 1.0s ease-out forwards'
                 }}
               >
-                <div className="bg-white border-2 border-black rounded-lg px-2 py-1 relative shadow-lg">
-                  <span className="text-black font-bold text-sm">¡Miau!</span>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-6 border-r-6 border-t-6 border-l-transparent border-r-transparent border-t-black"></div>
-                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 translate-y-[-2px] w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-white"></div>
+                <div className="rounded-lg px-2 py-1 relative shadow-lg" style={{ backgroundColor: '#F4EBD2' }}>
+                  <span className="text-black text-sm">¡Miau!</span>
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-6 border-r-6 border-t-6 border-l-transparent border-r-transparent" style={{ borderTopColor: '#F4EBD2' }}></div>
                 </div>
               </div>
             )}
