@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo, useCallback, memo } from 'react'
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 import { supabase } from '@/lib/supabase'
 
@@ -11,6 +11,62 @@ interface TemperatureReading {
   indoor_temp: string
   temp_differential: string
 }
+
+const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => (
+  <div className="h-64 mb-1">
+    <ResponsiveContainer width="100%" height="100%">
+      <LineChart 
+        data={formattedData} 
+        margin={{ top: 5, right: 15, left: 5, bottom: 5 }}
+      >
+        <CartesianGrid horizontal={true} vertical={false} stroke="#e5e7eb" />
+        <XAxis 
+          dataKey="time" 
+          tick={{ fontSize: 10 }}
+          domain={['dataMin', 'dataMax']}
+          ticks={[formattedData[formattedData.length - 1]?.time]}
+          tickFormatter={(value) => {
+            const date = new Date(value);
+            return date.toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            });
+          }}
+        />
+        <YAxis 
+          tick={{ fontSize: 10 }}
+          width={30}
+        />
+        <Tooltip 
+          formatter={(value: any) => [
+            typeof value === 'number' ? value.toFixed(1) + '°C' : value
+          ]}
+          labelFormatter={(label) => `${label}`}
+          contentStyle={{ 
+            fontSize: '12px', 
+            padding: '4px 6px',
+            minWidth: 'auto'
+          }}
+        />
+        <Line 
+          type="monotone" 
+          dataKey="outdoor" 
+          stroke="#C11818" 
+          strokeWidth={2}
+          dot={false}
+        />
+        <Line 
+          type="monotone" 
+          dataKey="indoor" 
+          stroke="#589684" 
+          strokeWidth={2}
+          dot={false}
+        />
+      </LineChart>
+    </ResponsiveContainer>
+  </div>
+))
 
 export default function Home() {
   const [data, setData] = useState<TemperatureReading[]>([])
@@ -70,6 +126,15 @@ export default function Home() {
     }))
   }
 
+  const formattedData = useMemo(() => formatData(data), [data, timeRange])
+
+  const handleCatClick = useCallback(() => {
+    setShowMiau(true)
+    setTimeout(() => {
+      setShowMiau(false)
+    }, 1000)
+  }, [])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center font-sans">
@@ -104,9 +169,9 @@ export default function Home() {
     
     const current = parseFloat(currentTemp)
     const past = parseFloat(isIndoor ? reading24hAgo.indoor_temp : reading24hAgo.outdoor_temp)
-    const diff = past - current
+    const diff = current - past
     
-    return diff
+    return { absoluteDiff: Math.abs(diff), isIncrease: diff > 0 }
   }
 
   const getImageUrl = (imageName: string) => {
@@ -115,13 +180,6 @@ export default function Home() {
       .from('casa-fresca-assets')
       .getPublicUrl(imageName)
     return data.publicUrl
-  }
-
-  const handleCatClick = () => {
-    setShowMiau(true)
-    setTimeout(() => {
-      setShowMiau(false)
-    }, 1000)
   }
 
   return (
@@ -168,8 +226,8 @@ export default function Home() {
                       const diff = get24hDifference(latestReading.indoor_temp, true)
                       return diff !== null ? (
                         <>
-                          <span style={{ color: diff < 0 ? '#DD9378' : '#7FB9D8' }}>
-                          {(-diff).toFixed(1)}{diff < 0 ? ' más' : 'menos'}
+                          <span style={{ color: diff.isIncrease ? '#DD9378' : '#7FB9D8' }}>
+                            {diff.absoluteDiff.toFixed(1)}{diff.isIncrease ? ' +' : ' -'}
                           </span>
                           {' que ayer'}
                         </>
@@ -183,8 +241,8 @@ export default function Home() {
                       const diff = get24hDifference(latestReading.outdoor_temp, false)
                       return diff !== null ? (
                         <>
-                          <span style={{ color: diff < 0 ? '#DD9378' : '#7FB9D8' }}>
-                            {(-diff).toFixed(1)}{diff < 0 ? ' más' : 'menos'}
+                          <span style={{ color: diff.isIncrease ? '#DD9378' : '#7FB9D8' }}>
+                            {diff.absoluteDiff.toFixed(1)}{diff.isIncrease ? ' +' : ' -'}
                           </span>
                           {' que ayer'}
                         </>
@@ -199,59 +257,7 @@ export default function Home() {
 
         {/* Temperature chart */}
         <div className="p-0">
-          <div className="h-64 mb-1">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart 
-                data={formatData(data)} 
-                margin={{ top: 5, right: 15, left: 5, bottom: 5 }}
-              >
-                <CartesianGrid horizontal={true} vertical={false} stroke="#e5e7eb" />
-                <XAxis 
-                  dataKey="time" 
-                  tick={{ fontSize: 10 }}
-                  domain={['dataMin', 'dataMax']}
-                  ticks={[formatData(data)[formatData(data).length - 1]?.time]}
-                  tickFormatter={(value) => {
-                    const date = new Date(value);
-                    return date.toLocaleTimeString('en-US', { 
-                      hour: '2-digit', 
-                      minute: '2-digit',
-                      hour12: false 
-                    });
-                  }}
-                />
-                <YAxis 
-                  tick={{ fontSize: 10 }}
-                  width={30}
-                />
-                <Tooltip 
-                  formatter={(value: any) => [
-                    typeof value === 'number' ? value.toFixed(1) + '°C' : value
-                  ]}
-                  labelFormatter={(label) => `${label}`}
-                  contentStyle={{ 
-                    fontSize: '12px', 
-                    padding: '4px 6px',
-                    minWidth: 'auto'
-                  }}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="outdoor" 
-                  stroke="#C11818" 
-                  strokeWidth={2}
-                  dot={false}
-                />
-                <Line 
-                  type="monotone" 
-                  dataKey="indoor" 
-                  stroke="#589684" 
-                  strokeWidth={2}
-                  dot={false}
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          <TemperatureChart formattedData={formattedData} />
 
           {/* Time range segmented control */}
           <div className="flex bg-gray-100 rounded-lg p-1 mb-6 mx-4">
