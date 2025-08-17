@@ -1,8 +1,10 @@
 'use client'
 
 import { useEffect, useState, useMemo, useCallback, memo } from 'react'
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import dynamic from 'next/dynamic'
 import { supabase } from '@/lib/supabase'
+
+const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
 interface TemperatureReading {
   id: string
@@ -12,61 +14,244 @@ interface TemperatureReading {
   temp_differential: string
 }
 
-const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => (
-  <div className="h-64 mb-1">
-    <ResponsiveContainer width="100%" height="100%">
-      <LineChart 
-        data={formattedData} 
-        margin={{ top: 5, right: 15, left: 5, bottom: 5 }}
-      >
-        <CartesianGrid horizontal={true} vertical={false} stroke="#e5e7eb" />
-        <XAxis 
-          dataKey="time" 
-          tick={{ fontSize: 10 }}
-          domain={['dataMin', 'dataMax']}
-          ticks={[formattedData[formattedData.length - 1]?.time]}
-          tickFormatter={(value) => {
-            const date = new Date(value);
-            return date.toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
-              minute: '2-digit',
-              hour12: false 
-            });
-          }}
-        />
-        <YAxis 
-          tick={{ fontSize: 10 }}
-          width={30}
-        />
-        <Tooltip 
-          formatter={(value: any) => [
-            typeof value === 'number' ? value.toFixed(1) + '°C' : value
-          ]}
-          labelFormatter={(label) => `${label}`}
-          contentStyle={{ 
-            fontSize: '12px', 
-            padding: '4px 6px',
-            minWidth: 'auto'
-          }}
-        />
-        <Line 
-          type="monotone" 
-          dataKey="outdoor" 
-          stroke="#C11818" 
-          strokeWidth={2}
-          dot={false}
-        />
-        <Line 
-          type="monotone" 
-          dataKey="indoor" 
-          stroke="#589684" 
-          strokeWidth={2}
-          dot={false}
-        />
-      </LineChart>
-    </ResponsiveContainer>
-  </div>
-))
+const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => {
+  
+  const chartOptions = {
+    chart: {
+      type: 'line' as const,
+      height: 256,
+      toolbar: {
+        show: false
+      },
+      zoom: {
+        enabled: false
+      },
+      selection: {
+        enabled: false
+      },
+      brush: {
+        enabled: false
+      },
+      events: {},
+      background: 'transparent',
+      fontFamily: 'inherit',
+      offsetX: 5,
+      offsetY: 5,
+      animations: {
+        enabled: true,
+        easing: 'easeinout',
+        speed: 800,
+        animateGradually: {
+          enabled: true,
+          delay: 150
+        },
+        dynamicAnimation: {
+          enabled: true,
+          speed: 350
+        }
+      }
+    },
+    stroke: {
+      width: 2,
+      curve: 'monotoneCubic' as const
+    },
+    colors: ['#C11818', '#589684'],
+    grid: {
+      show: true,
+      xaxis: {
+        lines: {
+          show: false
+        }
+      },
+      yaxis: {
+        lines: {
+          show: true
+        }
+      },
+      borderColor: '#e5e7eb',
+      strokeDashArray: 0,
+      padding: {
+        top: 5,
+        right: 15,
+        bottom: 5,
+        left: 5
+      }
+    },
+    xaxis: {
+      categories: formattedData.map(d => d.time),
+      tickAmount: 2,
+      labels: {
+        style: {
+          fontSize: '10px',
+          fontFamily: 'inherit'
+        },
+        show: true,
+        rotate: 0,
+        formatter: function(_value: string, index?: number) {
+          // Only show the last timestamp (rightmost), similar to original
+          const isLast = index === formattedData.length - 1;
+          if (isLast && formattedData.length > 0) {
+            const lastDataPoint = formattedData[formattedData.length - 1];
+            if (lastDataPoint && lastDataPoint.originalTimestamp) {
+              const date = new Date(lastDataPoint.originalTimestamp);
+              return date.toLocaleTimeString('en-US', { 
+                hour: '2-digit', 
+                minute: '2-digit',
+                hour12: false 
+              });
+            }
+          }
+          return '';
+        },
+        showDuplicates: false
+      },
+      axisBorder: {
+        show: false
+      },
+      axisTicks: {
+        show: false
+      },
+      
+      crosshairs: {
+        show: false
+      },
+      tooltip: {
+        enabled: false
+      },
+      min: undefined,
+      max: undefined
+    },
+    yaxis: {
+      labels: {
+        style: {
+          fontSize: '10px',
+          fontFamily: 'inherit'
+        },
+        offsetX: -15,
+        formatter: function(value: number) {
+          return Math.round(value) + '°C';
+        }
+      },
+      axisBorder: {
+        show: false
+      },
+      axisTicks: {
+        show: false
+      },
+      crosshairs: {
+        show: false
+      },
+      tooltip: {
+        enabled: false
+      }
+    },
+    tooltip: {
+      shared: true,
+      intersect: false,
+      followCursor: false,
+      style: {
+        fontSize: '12px'
+      },
+      marker: {
+        show: false
+      },
+      x: {
+        show: false
+      },
+      custom: function({ series, dataPointIndex, w }: any) {
+        const outdoor = series[0][dataPointIndex];
+        const indoor = series[1][dataPointIndex];
+        
+        // Get the original data point to access the full timestamp
+        const originalDataPoint = formattedData[dataPointIndex];
+        let fullDateTime = '';
+        
+        if (originalDataPoint && originalDataPoint.originalTimestamp) {
+          const date = new Date(originalDataPoint.originalTimestamp);
+          fullDateTime = date.toLocaleString('es-ES', {
+            month: 'short', 
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: false
+          });
+        } else {
+          fullDateTime = originalDataPoint ? originalDataPoint.time : w.globals.categoryLabels[dataPointIndex];
+        }
+        
+        return `
+          <div style="padding: 4px 6px; font-size: 12px; min-width: auto; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="margin-bottom: 2px;">${fullDateTime}</div>
+            <div style="color: #C11818; margin: 1px 0;">
+              ${outdoor?.toFixed(1)}°C
+            </div>
+            <div style="color: #589684; margin: 1px 0;">
+              ${indoor?.toFixed(1)}°C
+            </div>
+          </div>
+        `;
+      }
+    },
+    markers: {
+      size: 0
+    },
+    legend: {
+      show: false
+    },
+    dataLabels: {
+      enabled: false
+    },
+    states: {
+      hover: {
+        filter: {
+          type: 'none'
+        }
+      },
+      active: {
+        allowMultipleDataPointsSelection: false,
+        filter: {
+          type: 'none'
+        }
+      }
+    },
+    responsive: [{
+      breakpoint: 480,
+      options: {
+        chart: {
+          height: 256
+        },
+        yaxis: {
+          labels: {
+            offsetX: -10
+          }
+        }
+      }
+    }]
+  };
+
+  const chartSeries = [
+    {
+      name: 'Outdoor',
+      data: formattedData.map(d => d.outdoor)
+    },
+    {
+      name: 'Indoor', 
+      data: formattedData.map(d => d.indoor)
+    }
+  ];
+
+  return (
+    <div className="h-64">
+      <Chart
+        options={chartOptions}
+        series={chartSeries}
+        type="line"
+        height={256}
+        width="100%"
+      />
+    </div>
+  );
+})
 
 export default function Home() {
   const [data, setData] = useState<TemperatureReading[]>([])
@@ -121,6 +306,7 @@ export default function Home() {
         minute: '2-digit',
         hour12: false
       }),
+      originalTimestamp: reading.timestamp,
       outdoor: parseFloat(reading.outdoor_temp),
       indoor: parseFloat(reading.indoor_temp)
     }))
@@ -258,6 +444,17 @@ export default function Home() {
         {/* Temperature chart */}
         <div className="p-0">
           <TemperatureChart formattedData={formattedData} />
+
+          {/* Last updated timestamp */}
+          {latestReading && (
+            <p className="text-center text-sm text-gray-500 mb-6">
+              actualizado a las {new Date(latestReading.timestamp).toLocaleTimeString('es-ES', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: false
+              })}
+            </p>
+          )}
 
           {/* Time range segmented control */}
           <div className="flex bg-gray-100 rounded-lg p-1 mb-6 mx-4">
