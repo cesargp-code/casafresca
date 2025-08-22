@@ -213,20 +213,7 @@ const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => {
           type: 'none'
         }
       }
-    },
-    responsive: [{
-      breakpoint: 480,
-      options: {
-        chart: {
-          height: 256
-        },
-        yaxis: {
-          labels: {
-            offsetX: -10
-          }
-        }
-      }
-    }]
+    }
   };
 
   const chartSeries = [
