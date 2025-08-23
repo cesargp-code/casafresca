@@ -39,7 +39,7 @@ const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => {
       offsetY: 5,
       animations: {
         enabled: true,
-        easing: 'easeinout',
+        easing: 'linear',
         speed: 800,
         animateGradually: {
           enabled: true,
