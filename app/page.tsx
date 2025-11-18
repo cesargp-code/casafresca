@@ -317,8 +317,9 @@ export default function Home() {
   }
 
   const latestReading = data[data.length - 1]
+  const MIN_COMFORTABLE_TEMP = 18
   const shouldCloseWindows = latestReading ? 
-    parseFloat(latestReading.outdoor_temp) > parseFloat(latestReading.indoor_temp) : false
+    (parseFloat(latestReading.outdoor_temp) > parseFloat(latestReading.indoor_temp)) || (parseFloat(latestReading.outdoor_temp) < MIN_COMFORTABLE_TEMP) : false
 
   // Calculate temperature difference from 24h ago
   const get24hDifference = (currentTemp: string, isIndoor: boolean) => {
