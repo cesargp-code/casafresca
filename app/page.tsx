@@ -386,10 +386,10 @@ export default function Home() {
                 <td className="text-sm">FUERA</td>
               </tr>
               <tr>
-                <td className="font-bold text-3xl whitespace-nowrap" style={{color: shouldCloseWindows ? '#7FB9D8' : '#DD9378'}}>
+                <td className="font-bold text-3xl whitespace-nowrap" style={{color: '#589684'}}>
                   {latestReading ? parseFloat(latestReading.indoor_temp).toFixed(1) : '--'}&nbsp;°C
                 </td>
-                <td className="font-bold text-3xl whitespace-nowrap" style={{color: shouldCloseWindows ? '#DD9378' : '#7FB9D8'}}>
+                <td className="font-bold text-3xl whitespace-nowrap" style={{color: '#C11818'}}>
                   {latestReading ? parseFloat(latestReading.outdoor_temp).toFixed(1) : '--'}&nbsp;°C
                 </td>
               </tr>
