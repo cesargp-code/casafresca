@@ -182,11 +182,11 @@ const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => {
         return `
           <div style="padding: 4px 6px; font-size: 12px; min-width: auto; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
             <div style="margin-bottom: 2px;">${fullDateTime}</div>
-            <div style="color: #C11818; margin: 1px 0;">
-              ${outdoor?.toFixed(1)}°C
-            </div>
             <div style="color: #589684; margin: 1px 0;">
               ${indoor?.toFixed(1)}°C
+            </div>
+            <div style="color: #C11818; margin: 1px 0;">
+              ${outdoor?.toFixed(1)}°C
             </div>
           </div>
         `;
@@ -228,7 +228,7 @@ const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => {
   ];
 
   return (
-    <div className="h-64">
+    <div className="h-64 overflow-hidden">
       <Chart
         options={chartOptions}
         series={chartSeries}
