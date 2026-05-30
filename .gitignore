@@ -49,3 +49,4 @@ MAINTENANCE.md
 
 # supabase edge functions (deployed directly to Supabase, not to Vercel)
 /supabase/functions/
+/supabase/.temp/

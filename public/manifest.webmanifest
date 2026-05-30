@@ -1,0 +1,18 @@
+{
+  "name": "Casa Fresca",
+  "short_name": "Casa Fresca",
+  "description": "Temperature monitoring dashboard",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#589684",
+  "icons": [
+    {
+      "src": "/window.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

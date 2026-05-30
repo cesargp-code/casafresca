@@ -20,6 +20,37 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Browser notifications
+
+The app can ask mobile browsers for notification permission and, when VAPID is configured, create a Web Push subscription through `/api/push-subscriptions`. The Supabase monitor function sends push notifications from the same open/close-window branch that sends email notifications.
+
+Required environment variables:
+
+```bash
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+NEXT_PUBLIC_VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_PUBLIC_KEY=your-vapid-public-key
+VAPID_PRIVATE_KEY=your-vapid-private-key
+VAPID_SUBJECT=mailto:you@example.com
+```
+
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY` is used by the browser to subscribe. `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` must also be configured in Supabase for the `casa-fresca-monitor` Edge Function so it can send the push notification when it sends the matching email notification.
+
+Create a Supabase table for saved subscriptions:
+
+```sql
+create table casa_fresca_push_subscriptions (
+  endpoint text primary key,
+  subscription jsonb not null,
+  user_agent text,
+  enabled boolean not null default true,
+  updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now()
+);
+```
+
+On iPhone, browser push notifications require the site to be added to the home screen before the permission prompt is available.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
