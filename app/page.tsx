@@ -18,6 +18,8 @@ type NotificationPermissionState = NotificationPermission | 'unsupported'
 
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
 const notificationPromptDismissedKey = 'casa-fresca-notification-prompt-dismissed'
+const openWindowsThemeColor = '#589684'
+const closeWindowsThemeColor = '#C11818'
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4)
@@ -443,6 +445,24 @@ export default function Home() {
     setNotificationMessage('')
   }, [])
 
+  const latestReading = data[data.length - 1]
+  const MIN_COMFORTABLE_TEMP = 18
+  const shouldCloseWindows = latestReading ? 
+    (parseFloat(latestReading.outdoor_temp) > parseFloat(latestReading.indoor_temp)) || (parseFloat(latestReading.outdoor_temp) < MIN_COMFORTABLE_TEMP) : false
+
+  useEffect(() => {
+    const themeColor = shouldCloseWindows ? closeWindowsThemeColor : openWindowsThemeColor
+    let themeMeta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]')
+
+    if (!themeMeta) {
+      themeMeta = document.createElement('meta')
+      themeMeta.name = 'theme-color'
+      document.head.appendChild(themeMeta)
+    }
+
+    themeMeta.content = themeColor
+  }, [shouldCloseWindows])
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center font-sans">
@@ -451,10 +471,6 @@ export default function Home() {
     )
   }
 
-  const latestReading = data[data.length - 1]
-  const MIN_COMFORTABLE_TEMP = 18
-  const shouldCloseWindows = latestReading ? 
-    (parseFloat(latestReading.outdoor_temp) > parseFloat(latestReading.indoor_temp)) || (parseFloat(latestReading.outdoor_temp) < MIN_COMFORTABLE_TEMP) : false
   const isIos = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent)
   const isStandalone = typeof window !== 'undefined' && (
     window.matchMedia('(display-mode: standalone)').matches ||
