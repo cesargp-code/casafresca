@@ -21,6 +21,10 @@ export const metadata: Metadata = {
   title: "Casa Fresca",
   description: "Temperature monitoring dashboard",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: "/casa_fresca.png",
+    apple: "/casa_fresca.png",
+  },
   appleWebApp: {
     capable: true,
     title: "Casa Fresca",

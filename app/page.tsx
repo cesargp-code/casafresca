@@ -413,14 +413,14 @@ export default function Home() {
 
         await registration.showNotification('Casa Fresca activado', {
           body: 'Te podremos avisar cuando convenga abrir o cerrar ventanas.',
-          icon: '/window.svg',
-          badge: '/window.svg',
+          icon: '/casa_fresca.png',
+          badge: '/casa_fresca.png',
           tag: 'casa-fresca-notifications-ready',
         })
       } else {
         new Notification('Casa Fresca activado', {
           body: 'Te podremos avisar cuando convenga abrir o cerrar ventanas.',
-          icon: '/window.svg',
+          icon: '/casa_fresca.png',
         })
       }
 

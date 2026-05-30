@@ -10,8 +10,8 @@ self.addEventListener('push', (event) => {
   let payload = {
     title: 'Casa Fresca',
     body: 'Hay una nueva recomendacion de ventanas.',
-    icon: '/window.svg',
-    badge: '/window.svg',
+    icon: '/casa_fresca.png',
+    badge: '/casa_fresca.png',
     tag: 'casa-fresca-notification',
     url: '/',
   }
