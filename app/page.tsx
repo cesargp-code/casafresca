@@ -17,6 +17,7 @@ interface TemperatureReading {
 type NotificationPermissionState = NotificationPermission | 'unsupported'
 
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
+const notificationPromptDismissedKey = 'casa-fresca-notification-prompt-dismissed'
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4)
@@ -266,6 +267,7 @@ export default function Home() {
   const [showMiau, setShowMiau] = useState(false)
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>('default')
   const [notificationMessage, setNotificationMessage] = useState('')
+  const [showNotificationPrompt, setShowNotificationPrompt] = useState(false)
   const [isEnablingNotifications, setIsEnablingNotifications] = useState(false)
 
   useEffect(() => {
@@ -278,7 +280,11 @@ export default function Home() {
       return
     }
 
-    setNotificationPermission(Notification.permission)
+    const permission = Notification.permission
+    const promptDismissed = localStorage.getItem(notificationPromptDismissedKey) === 'true'
+
+    setNotificationPermission(permission)
+    setShowNotificationPrompt(permission === 'default' && !promptDismissed)
 
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').catch((error) => {
@@ -349,6 +355,8 @@ export default function Home() {
     if (!('Notification' in window)) {
       setNotificationPermission('unsupported')
       setNotificationMessage('Este navegador no permite avisos web.')
+      setShowNotificationPrompt(false)
+      localStorage.setItem(notificationPromptDismissedKey, 'true')
       return
     }
 
@@ -365,6 +373,8 @@ export default function Home() {
       setNotificationPermission(permission)
 
       if (permission !== 'granted') {
+        localStorage.setItem(notificationPromptDismissedKey, 'true')
+        setShowNotificationPrompt(false)
         setNotificationMessage(
           permission === 'denied'
             ? 'Permiso bloqueado. Activalo desde los ajustes del navegador.'
@@ -417,12 +427,20 @@ export default function Home() {
           ? 'Avisos activados en este dispositivo.'
           : 'Permiso activado. Falta configurar VAPID para enviar avisos automaticos.'
       )
+      localStorage.setItem(notificationPromptDismissedKey, 'true')
+      setShowNotificationPrompt(false)
     } catch (error) {
       console.error('Error enabling notifications:', error)
       setNotificationMessage('No se pudieron activar los avisos. Intentalo otra vez.')
     } finally {
       setIsEnablingNotifications(false)
     }
+  }, [])
+
+  const handleDismissNotificationPrompt = useCallback(() => {
+    localStorage.setItem(notificationPromptDismissedKey, 'true')
+    setShowNotificationPrompt(false)
+    setNotificationMessage('')
   }, [])
 
   if (loading) {
@@ -443,13 +461,6 @@ export default function Home() {
     ('standalone' in navigator && Boolean(navigator.standalone))
   )
   const needsIosInstall = isIos && !isStandalone
-  const notificationStatusText = notificationPermission === 'granted'
-    ? 'Avisos activados'
-    : notificationPermission === 'denied'
-      ? 'Avisos bloqueados'
-      : notificationPermission === 'unsupported'
-        ? 'No disponible'
-        : 'Avisos desactivados'
 
   // Calculate temperature difference from 24h ago
   const get24hDifference = (currentTemp: string, isIndoor: boolean) => {
@@ -559,55 +570,6 @@ export default function Home() {
           </table>
         </div>
 
-        {/* Browser notifications */}
-        <div className="px-4 mb-6">
-          <div className="border border-gray-200 rounded-lg p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <p className="text-sm font-semibold text-gray-900">Avisos en el movil</p>
-                <p className="text-xs text-gray-500 mt-1">{notificationStatusText}</p>
-              </div>
-              <span
-                className={`h-2.5 w-2.5 rounded-full mt-1.5 flex-none ${
-                  notificationPermission === 'granted'
-                    ? 'bg-[#589684]'
-                    : notificationPermission === 'denied'
-                      ? 'bg-[#C11818]'
-                      : 'bg-gray-300'
-                }`}
-                aria-hidden="true"
-              />
-            </div>
-            <p className="text-sm text-gray-600 mt-3">
-              Recibe un aviso de Casa Fresca cuando cambie la recomendacion de abrir o cerrar ventanas.
-            </p>
-            {needsIosInstall && notificationPermission !== 'granted' && (
-              <p className="text-xs text-gray-500 mt-3">
-                En iPhone, anade Casa Fresca a la pantalla de inicio para permitir avisos.
-              </p>
-            )}
-            {notificationMessage && (
-              <p className="text-xs text-gray-500 mt-3">{notificationMessage}</p>
-            )}
-            <button
-              type="button"
-              onClick={handleEnableNotifications}
-              disabled={
-                isEnablingNotifications ||
-                notificationPermission === 'granted' ||
-                notificationPermission === 'unsupported'
-              }
-              className="mt-4 w-full rounded-md bg-[#589684] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#477b6d] disabled:cursor-not-allowed disabled:bg-gray-300"
-            >
-              {isEnablingNotifications
-                ? 'Activando...'
-                : notificationPermission === 'granted'
-                  ? 'Avisos activados'
-                  : 'Activar avisos'}
-            </button>
-          </div>
-        </div>
-
         {/* Temperature chart */}
         <div className="p-0">
           <TemperatureChart formattedData={formattedData} />
@@ -673,6 +635,46 @@ Sistema de gestión de temperatura para dormir bien</p>
           </div>
         </div>
       </div>
+
+      {showNotificationPrompt && notificationPermission === 'default' && (
+        <div className="fixed inset-x-0 bottom-0 z-50 px-4 pb-4">
+          <div className="mx-auto max-w-md rounded-lg border border-gray-200 bg-white p-4 shadow-[0_8px_30px_rgba(0,0,0,0.16)]">
+            <p className="text-sm font-semibold text-gray-900">Avisos en el movil</p>
+            <p className="mt-2 text-sm text-gray-600">
+              Casa Fresca puede avisarte cuando toque abrir o cerrar ventanas.
+            </p>
+            {needsIosInstall && (
+              <p className="mt-3 text-xs text-gray-500">
+                En iPhone, anade Casa Fresca a la pantalla de inicio para activar avisos.
+              </p>
+            )}
+            {notificationMessage && (
+              <p className="mt-3 text-xs text-gray-500">{notificationMessage}</p>
+            )}
+            <div className="mt-4 flex gap-2">
+              <button
+                type="button"
+                onClick={handleDismissNotificationPrompt}
+                className="flex-1 rounded-md border border-gray-200 px-4 py-2 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-50"
+              >
+                Ahora no
+              </button>
+              <button
+                type="button"
+                onClick={needsIosInstall ? handleDismissNotificationPrompt : handleEnableNotifications}
+                disabled={isEnablingNotifications}
+                className="flex-1 rounded-md bg-[#589684] px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#477b6d] disabled:cursor-not-allowed disabled:bg-gray-300"
+              >
+                {isEnablingNotifications
+                  ? 'Activando...'
+                  : needsIosInstall
+                    ? 'Entendido'
+                    : 'Activar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
