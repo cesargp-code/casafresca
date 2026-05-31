@@ -302,9 +302,52 @@ export default function Home() {
   const [showNotificationPrompt, setShowNotificationPrompt] = useState(false)
   const [isEnablingNotifications, setIsEnablingNotifications] = useState(false)
 
+  const fetchTemperatureData = useCallback(async () => {
+    try {
+      if (!supabase) {
+        console.error('Supabase client not available')
+        setLoading(false)
+        return
+      }
+
+      const { data: readings, error } = await supabase
+        .from('casa_fresca_readings')
+        .select('*')
+        .order('timestamp', { ascending: true })
+
+      if (error) {
+        console.error('Error fetching data:', error)
+      } else {
+        setData(readings || [])
+      }
+    } catch (error) {
+      console.error('Error:', error)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
     fetchTemperatureData()
-  }, [])
+  }, [fetchTemperatureData])
+
+  useEffect(() => {
+    const refreshWhenForegrounded = () => {
+      if (document.visibilityState === 'visible') {
+        fetchTemperatureData()
+      }
+    }
+
+    document.addEventListener('visibilitychange', refreshWhenForegrounded)
+    window.addEventListener('focus', refreshWhenForegrounded)
+    window.addEventListener('pageshow', refreshWhenForegrounded)
+
+    return () => {
+      document.removeEventListener('visibilitychange', refreshWhenForegrounded)
+      window.removeEventListener('focus', refreshWhenForegrounded)
+      window.removeEventListener('pageshow', refreshWhenForegrounded)
+    }
+  }, [fetchTemperatureData])
 
   useEffect(() => {
     if (!('Notification' in window)) {
@@ -328,31 +371,6 @@ export default function Home() {
       })
     }
   }, [])
-
-  const fetchTemperatureData = async () => {
-    try {
-      if (!supabase) {
-        console.error('Supabase client not available')
-        setLoading(false)
-        return
-      }
-
-      const { data: readings, error } = await supabase
-        .from('casa_fresca_readings')
-        .select('*')
-        .order('timestamp', { ascending: true })
-
-      if (error) {
-        console.error('Error fetching data:', error)
-      } else {
-        setData(readings || [])
-      }
-    } catch (error) {
-      console.error('Error:', error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const formatData = (data: TemperatureReading[]) => {
     const now = new Date()

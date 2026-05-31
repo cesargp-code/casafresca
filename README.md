@@ -22,7 +22,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Browser notifications
 
-The app can ask mobile browsers for notification permission and, when VAPID is configured, create a Web Push subscription through `/api/push-subscriptions`. The Supabase monitor function sends push notifications from the same open/close-window branch that sends email notifications.
+The app can ask mobile browsers for notification permission and, when VAPID is configured, create a Web Push subscription through `/api/push-subscriptions`. The Supabase monitor function sends push notifications when the open/close-window conditions are met.
 
 Required environment variables:
 
@@ -34,7 +34,7 @@ VAPID_PRIVATE_KEY=your-vapid-private-key
 VAPID_SUBJECT=mailto:you@example.com
 ```
 
-`NEXT_PUBLIC_VAPID_PUBLIC_KEY` is used by the browser to subscribe. `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` must also be configured in Supabase for the `casa-fresca-monitor` Edge Function so it can send the push notification when it sends the matching email notification.
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY` is used by the browser to subscribe. `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT` must also be configured in Supabase for the `casa-fresca-monitor` Edge Function so it can send push notifications. `VAPID_SUBJECT` is a contact URI for Web Push, not an email notification recipient.
 
 Create a Supabase table for saved subscriptions:
 
