@@ -36,6 +36,36 @@ function urlBase64ToUint8Array(base64String: string) {
   return outputArray
 }
 
+async function savePushSubscription(registration: ServiceWorkerRegistration) {
+  if (!('PushManager' in window) || !vapidPublicKey) {
+    return false
+  }
+
+  const existingSubscription = await registration.pushManager.getSubscription()
+  const subscription = existingSubscription || await registration.pushManager.subscribe({
+    userVisibleOnly: true,
+    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+  })
+
+  const response = await fetch('/api/push-subscriptions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      subscription,
+      userAgent: navigator.userAgent,
+    }),
+  })
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => null)
+    throw new Error(error?.error || 'Could not save push subscription')
+  }
+
+  return true
+}
+
 const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => {
   
   const chartOptions = {
@@ -289,7 +319,11 @@ export default function Home() {
     setShowNotificationPrompt(permission === 'default' && !promptDismissed)
 
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch((error) => {
+      navigator.serviceWorker.register('/sw.js').then(async (registration) => {
+        if (permission === 'granted') {
+          await savePushSubscription(registration)
+        }
+      }).catch((error) => {
         console.error('Error registering service worker:', error)
       })
     }
@@ -388,28 +422,7 @@ export default function Home() {
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.ready
 
-        if ('PushManager' in window && vapidPublicKey) {
-          const existingSubscription = await registration.pushManager.getSubscription()
-          const subscription = existingSubscription || await registration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-          })
-
-          const response = await fetch('/api/push-subscriptions', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              subscription,
-              userAgent: navigator.userAgent,
-            }),
-          })
-
-          if (!response.ok) {
-            throw new Error('Could not save push subscription')
-          }
-        }
+        await savePushSubscription(registration)
 
         await registration.showNotification('Casa Fresca activado', {
           body: 'Te podremos avisar cuando convenga abrir o cerrar ventanas.',
