@@ -25,6 +25,10 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.casa-fresca-chart-tooltip {
+  top: 8px !important;
+}
+
 @keyframes fadeUpAndOut {
   0% {
     opacity: 1;

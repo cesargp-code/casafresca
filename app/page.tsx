@@ -229,6 +229,7 @@ const TemperatureChart = memo(({
       intersect: false,
       enabledOnSeries: [0, 1],
       followCursor: false,
+      cssClass: 'casa-fresca-chart-tooltip',
       style: {
         fontSize: '12px'
       },
