@@ -14,12 +14,23 @@ interface TemperatureReading {
   temp_differential: string
 }
 
+interface ChartDataPoint {
+  time: string
+  originalTimestamp: string
+  outdoor: number
+  indoor: number
+  yesterdayOutdoor: number | null
+  yesterdayIndoor: number | null
+}
+
 type NotificationPermissionState = NotificationPermission | 'unsupported'
 
 const vapidPublicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
 const notificationPromptDismissedKey = 'casa-fresca-notification-prompt-dismissed'
 const openWindowsThemeColor = '#589684'
 const closeWindowsThemeColor = '#C11818'
+const oneDayMs = 24 * 60 * 60 * 1000
+const yesterdayComparisonToleranceMs = 90 * 60 * 1000
 
 function urlBase64ToUint8Array(base64String: string) {
   const padding = '='.repeat((4 - base64String.length % 4) % 4)
@@ -37,15 +48,23 @@ function urlBase64ToUint8Array(base64String: string) {
 }
 
 async function savePushSubscription(registration: ServiceWorkerRegistration) {
-  if (!('PushManager' in window) || !vapidPublicKey) {
+  if (!('PushManager' in window) || !registration.pushManager || !vapidPublicKey) {
     return false
   }
 
-  const existingSubscription = await registration.pushManager.getSubscription()
-  const subscription = existingSubscription || await registration.pushManager.subscribe({
-    userVisibleOnly: true,
-    applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
-  })
+  let subscription = await registration.pushManager.getSubscription()
+
+  if (!subscription) {
+    try {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
+        applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+      })
+    } catch (error) {
+      console.warn('Push subscription is not available in this browser:', error)
+      return false
+    }
+  }
 
   const response = await fetch('/api/push-subscriptions', {
     method: 'POST',
@@ -66,7 +85,13 @@ async function savePushSubscription(registration: ServiceWorkerRegistration) {
   return true
 }
 
-const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => {
+const TemperatureChart = memo(({
+  formattedData,
+  showYesterdayOverlay
+}: {
+  formattedData: ChartDataPoint[]
+  showYesterdayOverlay: boolean
+}) => {
   
   const chartOptions = {
     chart: {
@@ -104,10 +129,12 @@ const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => {
       }
     },
     stroke: {
-      width: 2,
+      width: showYesterdayOverlay ? [2, 2, 2, 2] : 2,
       curve: 'monotoneCubic' as const
     },
-    colors: ['#C11818', '#589684'],
+    colors: showYesterdayOverlay
+      ? ['#C11818', '#589684', 'rgba(193, 24, 24, 0.22)', 'rgba(88, 150, 132, 0.22)']
+      : ['#C11818', '#589684'],
     grid: {
       show: true,
       xaxis: {
@@ -200,6 +227,7 @@ const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => {
     tooltip: {
       shared: true,
       intersect: false,
+      enabledOnSeries: [0, 1],
       followCursor: false,
       style: {
         fontSize: '12px'
@@ -232,13 +260,13 @@ const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => {
         }
         
         return `
-          <div style="padding: 4px 6px; font-size: 12px; min-width: auto; background: white; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-            <div style="margin-bottom: 2px;">${fullDateTime}</div>
+          <div style="padding: 4px 6px; font-size: 12px; min-width: auto; background: white; color: #6B7280; border: 1px solid #ccc; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+            <div style="margin-bottom: 2px; color: #6B7280;">${fullDateTime}</div>
             <div style="color: #589684; margin: 1px 0;">
-              ${indoor?.toFixed(1)}°C
+              ${typeof indoor === 'number' ? indoor.toFixed(1) : '--'}°C
             </div>
             <div style="color: #C11818; margin: 1px 0;">
-              ${outdoor?.toFixed(1)}°C
+              ${typeof outdoor === 'number' ? outdoor.toFixed(1) : '--'}°C
             </div>
           </div>
         `;
@@ -268,7 +296,7 @@ const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => {
     }
   };
 
-  const chartSeries = [
+  const chartSeries: { name: string; data: Array<number | null> }[] = [
     {
       name: 'Outdoor',
       data: formattedData.map(d => d.outdoor)
@@ -278,6 +306,19 @@ const TemperatureChart = memo(({ formattedData }: { formattedData: any[] }) => {
       data: formattedData.map(d => d.indoor)
     }
   ];
+
+  if (showYesterdayOverlay) {
+    chartSeries.push(
+      {
+        name: 'Outdoor ayer',
+        data: formattedData.map(d => d.yesterdayOutdoor)
+      },
+      {
+        name: 'Indoor ayer',
+        data: formattedData.map(d => d.yesterdayIndoor)
+      }
+    )
+  }
 
   return (
     <div className="h-64 overflow-hidden">
@@ -364,36 +405,71 @@ export default function Home() {
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.register('/sw.js').then(async (registration) => {
         if (permission === 'granted') {
-          await savePushSubscription(registration)
+          await savePushSubscription(registration).catch((error) => {
+            console.warn('Could not refresh push subscription:', error)
+          })
         }
       }).catch((error) => {
-        console.error('Error registering service worker:', error)
+        console.warn('Could not register service worker:', error)
       })
     }
   }, [])
 
-  const formatData = (data: TemperatureReading[]) => {
+  const findClosestReading = (
+    readings: TemperatureReading[],
+    targetTime: number,
+    maxDifferenceMs: number
+  ) => {
+    return readings.reduce<TemperatureReading | null>((closest, reading) => {
+      const readingTime = new Date(reading.timestamp).getTime()
+      const readingDiff = Math.abs(readingTime - targetTime)
+
+      if (readingDiff > maxDifferenceMs) {
+        return closest
+      }
+
+      if (!closest) {
+        return reading
+      }
+
+      const closestTime = new Date(closest.timestamp).getTime()
+      const closestDiff = Math.abs(closestTime - targetTime)
+
+      return readingDiff < closestDiff ? reading : closest
+    }, null)
+  }
+
+  const formatData = (data: TemperatureReading[]): ChartDataPoint[] => {
     const now = new Date()
     const cutoffTime = timeRange === '24h' 
-      ? new Date(now.getTime() - 24 * 60 * 60 * 1000)
-      : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      ? new Date(now.getTime() - oneDayMs)
+      : new Date(now.getTime() - 7 * oneDayMs)
     
     const filteredData = data.filter(reading => 
       new Date(reading.timestamp) >= cutoffTime
     )
     
-    return filteredData.map(reading => ({
-      time: new Date(reading.timestamp).toLocaleString('es-ES', {
+    return filteredData.map(reading => {
+      const readingDate = new Date(reading.timestamp)
+      const yesterdayReading = timeRange === '24h'
+        ? findClosestReading(data, readingDate.getTime() - oneDayMs, yesterdayComparisonToleranceMs)
+        : null
+
+      return {
+        time: readingDate.toLocaleString('es-ES', {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
         hour12: false
-      }),
-      originalTimestamp: reading.timestamp,
-      outdoor: parseFloat(reading.outdoor_temp),
-      indoor: parseFloat(reading.indoor_temp)
-    }))
+        }),
+        originalTimestamp: reading.timestamp,
+        outdoor: parseFloat(reading.outdoor_temp),
+        indoor: parseFloat(reading.indoor_temp),
+        yesterdayOutdoor: yesterdayReading ? parseFloat(yesterdayReading.outdoor_temp) : null,
+        yesterdayIndoor: yesterdayReading ? parseFloat(yesterdayReading.indoor_temp) : null
+      }
+    })
   }
 
   const formattedData = useMemo(() => formatData(data), [data, timeRange])
@@ -440,7 +516,13 @@ export default function Home() {
       if ('serviceWorker' in navigator) {
         const registration = await navigator.serviceWorker.ready
 
-        await savePushSubscription(registration)
+        const savedPushSubscription = await savePushSubscription(registration)
+
+        if (!savedPushSubscription) {
+          setNotificationMessage('Permiso activado, pero este navegador no ofrece servicio push.')
+          localStorage.setItem(notificationPromptDismissedKey, 'true')
+          return
+        }
 
         await registration.showNotification('Casa Fresca activado', {
           body: 'Te podremos avisar cuando convenga abrir o cerrar ventanas.',
@@ -463,7 +545,7 @@ export default function Home() {
       localStorage.setItem(notificationPromptDismissedKey, 'true')
       setShowNotificationPrompt(false)
     } catch (error) {
-      console.error('Error enabling notifications:', error)
+      console.warn('Error enabling notifications:', error)
       setNotificationMessage('No se pudieron activar los avisos. Intentalo otra vez.')
     } finally {
       setIsEnablingNotifications(false)
@@ -561,7 +643,7 @@ export default function Home() {
           <table className="w-full text-center">
             <tbody>
               <tr>
-                <td className="text-sm">DENTRO</td>
+                <td className="text-sm" style={{ color: '#6B7280' }}>DENTRO</td>
                 <td rowSpan={3} className="w-24 align-middle">
                   <div className="flex justify-center">
                     <img 
@@ -571,7 +653,7 @@ export default function Home() {
                     />
                   </div>
                 </td>
-                <td className="text-sm">FUERA</td>
+                <td className="text-sm" style={{ color: '#6B7280' }}>FUERA</td>
               </tr>
               <tr>
                 <td className="font-bold text-3xl whitespace-nowrap" style={{color: '#589684'}}>
@@ -619,7 +701,10 @@ export default function Home() {
 
         {/* Temperature chart */}
         <div className="p-0">
-          <TemperatureChart formattedData={formattedData} />
+          <TemperatureChart
+            formattedData={formattedData}
+            showYesterdayOverlay={timeRange === '24h'}
+          />
 
           {/* Last updated timestamp */}
           {latestReading && (
