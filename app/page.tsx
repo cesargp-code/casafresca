@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useMemo, useCallback, memo } from 'react'
 import dynamic from 'next/dynamic'
+import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
@@ -322,12 +323,12 @@ const TemperatureChart = memo(({
   }
 
   return (
-    <div className="h-64 overflow-hidden">
+    <div className="h-64 overflow-hidden md:h-72 lg:h-80">
       <Chart
         options={chartOptions}
         series={chartSeries}
         type="line"
-        height={256}
+        height="100%"
         width="100%"
       />
     </div>
@@ -629,18 +630,43 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-white font-sans">
-      <div className="max-w-md mx-auto">
-        {/* Top banner image */}
-        <div className="w-full">
-          <img 
-            src={getImageUrl('top_new.png')} 
-            alt="Casa Fresca" 
-            className="w-full h-auto"
-          />
-        </div>
+      <div className="mx-auto w-full max-w-6xl">
+        {/* The three pieces shrink together on mobile and separate without stretching on wide screens. */}
+        <header className="flex w-full items-center overflow-hidden" aria-label="Casa Fresca">
+          <div className="flex min-w-0 flex-[1_1_310px] justify-start">
+            <Image
+              src="/header-night.png"
+              alt=""
+              width={310}
+              height={295}
+              priority
+              className="h-auto w-full max-w-[310px]"
+            />
+          </div>
+          <div className="min-w-0 flex-[0_1_385px]">
+            <Image
+              src="/header-title.png"
+              alt="Casa Fresca"
+              width={385}
+              height={295}
+              priority
+              className="h-auto w-full max-w-[385px]"
+            />
+          </div>
+          <div className="flex min-w-0 flex-[1_1_310px] justify-end">
+            <Image
+              src="/header-sunrise.png"
+              alt=""
+              width={310}
+              height={295}
+              priority
+              className="h-auto w-full max-w-[310px]"
+            />
+          </div>
+        </header>
 
         {/* Temperature readings and window recommendation */}
-        <div className="mb-6 px-4 mt-5">
+        <div className="mx-auto mb-6 mt-5 max-w-xl px-4">
           <table className="w-full text-center">
             <tbody>
               <tr>
@@ -701,7 +727,7 @@ export default function Home() {
         </div>
 
         {/* Temperature chart */}
-        <div className="p-0">
+        <div className="p-0 md:px-4 lg:px-6">
           <TemperatureChart
             formattedData={formattedData}
             showYesterdayOverlay={timeRange === '24h'}
@@ -719,7 +745,7 @@ export default function Home() {
           )}
 
           {/* Time range segmented control */}
-          <div className="flex bg-gray-100 rounded-lg p-1 mb-6 mx-4">
+          <div className="mx-4 mb-6 flex rounded-lg bg-gray-100 p-1 sm:mx-auto sm:max-w-md">
             <button
               onClick={() => setTimeRange('7d')}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
@@ -742,14 +768,14 @@ export default function Home() {
             </button>
           </div>
 
-          <p className="text-center text-sm mb-0" style={{color: '#bbb'}}>Casa Fresca - León, España<br />
+          <p className="mb-0 text-center text-sm" style={{color: '#bbb'}}>Casa Fresca - León, España<br />
 Sistema de gestión de temperatura para dormir bien</p>
           {/* Cat image at bottom */}
           <div className="flex justify-center relative">
             <img 
               src={getImageUrl('cat.png')} 
               alt="Cat" 
-              className="w-1/2 h-auto cursor-pointer"
+              className="h-auto w-1/2 max-w-56 cursor-pointer"
               onClick={handleCatClick}
             />
             {showMiau && (
