@@ -640,17 +640,17 @@ export default function Home() {
               width={310}
               height={295}
               priority
-              className="h-auto w-full max-w-[310px]"
+              className="h-auto w-full max-w-[310px] md:w-[155px]"
             />
           </div>
-          <div className="min-w-0 flex-[0_1_385px]">
+          <div className="flex min-w-0 flex-[0_1_385px] justify-center">
             <Image
               src="/header-title.png"
               alt="Casa Fresca"
               width={385}
               height={295}
               priority
-              className="h-auto w-full max-w-[385px]"
+              className="h-auto w-full max-w-[385px] md:w-[193px]"
             />
           </div>
           <div className="flex min-w-0 flex-[1_1_310px] justify-end">
@@ -660,7 +660,7 @@ export default function Home() {
               width={310}
               height={295}
               priority
-              className="h-auto w-full max-w-[310px]"
+              className="h-auto w-full max-w-[310px] md:w-[155px]"
             />
           </div>
         </header>
