@@ -521,8 +521,7 @@ export default function Home() {
             </button>
           </div>
 
-          <p className="mb-0 text-center text-sm" style={{color: '#bbb'}}>Casa Fresca - León, España<br />
-Sistema de gestión de temperatura para dormir bien</p>
+          <p className="mb-0 text-center text-sm" style={{color: '#bbb'}}>Casa Fresca - León, España</p>
           {/* Cat image at bottom */}
           <div className="flex justify-center relative">
             <img 
