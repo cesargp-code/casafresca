@@ -20,6 +20,14 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Reading retention
+
+The Supabase `casa-fresca-monitor` Edge Function runs every 15 minutes and retains
+30 days of readings for future local forecast calibration. The dashboard fetches
+only the last seven days and continues to default to the 24-hour view.
+Retention was extended from seven days on 2026-09-05; older history accumulates
+gradually. Edge Function sources are gitignored and deployed separately from the app.
+
 ## Browser notifications
 
 The app can ask mobile browsers for notification permission and, when VAPID is configured, create a Web Push subscription through `/api/push-subscriptions`. The Supabase monitor function sends push notifications when the open/close-window conditions are met.

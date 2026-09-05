@@ -356,6 +356,7 @@ export default function Home() {
       const { data: readings, error } = await supabase
         .from('casa_fresca_readings')
         .select('*')
+        .gte('timestamp', new Date(Date.now() - 7 * oneDayMs).toISOString())
         .order('timestamp', { ascending: true })
 
       if (error) {
