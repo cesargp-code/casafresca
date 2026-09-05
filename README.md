@@ -32,9 +32,9 @@ gradually. The existing monitor source is gitignored and deployed separately fro
 
 The right-hand **Previsión** option shows outdoor temperatures for the next 168
 hours. The default remains **24 horas**, and **7 días atrás** displays observations.
-Forecast times use Europe/Madrid, including daylight-saving changes. Daily cards
-show minima/maxima within the displayed interval; incomplete days are marked
-**Parcial**. Predictions are currently unadjusted while forecast/observation pairs
+The forecast uses the same chart, tooltip, spacing and update timestamp as the
+historical view, with a dashed outdoor line. Predictions are currently unadjusted
+while forecast/observation pairs
 accumulate for a later, validated calibration model.
 
 `casa_fresca_forecast_config` stores the station coordinates and a private scheduler
@@ -50,7 +50,7 @@ before inserting one complete snapshot, deduplicates six-hour UTC slots and keep
 the previous snapshot if fetching fails. The database cron job runs at 00:10,
 06:10, 12:10 and 18:10 UTC. `/api/forecast` reads the latest stored snapshot;
 opening the app does not call Open-Meteo. An open forecast view checks storage
-every five minutes and on returning to the tab; data older than 12 hours is labeled stale.
+every five minutes and on returning to the tab; the last successful snapshot is retained on refresh failures.
 
 The forecast function source is tracked and deployed separately:
 
@@ -65,8 +65,8 @@ wrapper and the `http` and `pg_cron` extensions. To fetch immediately after conf
 the location, call `select public.call_casa_fresca_forecast();` as the database owner.
 Repeated calls in the same six-hour slot are skipped.
 
-Open-Meteo's free endpoint is for non-commercial use; provider attribution is shown
-below the forecast. See [API docs](https://open-meteo.com/en/docs) and
+Forecast data is provided by Open-Meteo (CC BY 4.0). Its free endpoint is for
+non-commercial use. See [API docs](https://open-meteo.com/en/docs) and
 [terms and pricing](https://open-meteo.com/en/pricing).
 
 ## Browser notifications
