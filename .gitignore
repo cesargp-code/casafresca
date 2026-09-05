@@ -47,6 +47,7 @@ CLAUDE.md
 # maintenance docs (contains project-specific info)
 MAINTENANCE.md
 
-# supabase edge functions (deployed directly to Supabase, not to Vercel)
-/supabase/functions/
+# Existing Supabase functions are managed remotely; track the new forecast worker.
+/supabase/functions/*
+!/supabase/functions/casa-fresca-forecast/
 /supabase/.temp/

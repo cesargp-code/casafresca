@@ -4,6 +4,7 @@ import { useEffect, useState, useMemo, useCallback, memo } from 'react'
 import dynamic from 'next/dynamic'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
+import Forecast from '@/app/components/Forecast'
 
 const Chart = dynamic(() => import('react-apexcharts'), { ssr: false })
 
@@ -338,7 +339,7 @@ const TemperatureChart = memo(({
 export default function Home() {
   const [data, setData] = useState<TemperatureReading[]>([])
   const [loading, setLoading] = useState(true)
-  const [timeRange, setTimeRange] = useState<'24h' | '7d'>('24h')
+  const [timeRange, setTimeRange] = useState<'24h' | '7d' | 'forecast'>('24h')
   const [showMiau, setShowMiau] = useState(false)
   const [notificationPermission, setNotificationPermission] = useState<NotificationPermissionState>('default')
   const [notificationMessage, setNotificationMessage] = useState('')
@@ -729,13 +730,13 @@ export default function Home() {
 
         {/* Temperature chart */}
         <div className="p-0 md:px-4 lg:px-6">
-          <TemperatureChart
+          {timeRange === 'forecast' ? <Forecast /> : <TemperatureChart
             formattedData={formattedData}
             showYesterdayOverlay={timeRange === '24h'}
-          />
+          />}
 
           {/* Last updated timestamp */}
-          {latestReading && (
+          {latestReading && timeRange !== 'forecast' && (
             <p className="text-center text-sm text-gray-500 mb-6">
               actualizado a las {new Date(latestReading.timestamp).toLocaleTimeString('es-ES', {
                 hour: '2-digit',
@@ -749,16 +750,18 @@ export default function Home() {
           <div className="mx-4 mb-6 flex rounded-lg bg-gray-100 p-1 sm:mx-auto sm:max-w-md">
             <button
               onClick={() => setTimeRange('7d')}
+              aria-pressed={timeRange === '7d'}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                 timeRange === '7d'
                   ? 'bg-white text-gray-900 shadow-sm'
                   : 'text-gray-600 hover:text-gray-900'
               }`}
             >
-              7 días
+              7 días atrás
             </button>
             <button
               onClick={() => setTimeRange('24h')}
+              aria-pressed={timeRange === '24h'}
               className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
                 timeRange === '24h'
                   ? 'bg-white text-gray-900 shadow-sm'
@@ -766,6 +769,13 @@ export default function Home() {
               }`}
             >
               24 horas
+            </button>
+            <button
+              onClick={() => setTimeRange('forecast')}
+              aria-pressed={timeRange === 'forecast'}
+              className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${timeRange === 'forecast' ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-600 hover:text-gray-900'}`}
+            >
+              Previsión
             </button>
           </div>
 

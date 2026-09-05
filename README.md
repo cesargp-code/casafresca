@@ -26,7 +26,48 @@ The Supabase `casa-fresca-monitor` Edge Function runs every 15 minutes and retai
 30 days of readings for future local forecast calibration. The dashboard fetches
 only the last seven days and continues to default to the 24-hour view.
 Retention was extended from seven days on 2026-09-05; older history accumulates
-gradually. Edge Function sources are gitignored and deployed separately from the app.
+gradually. The existing monitor source is gitignored and deployed separately from the app.
+
+## Seven-day forecast
+
+The right-hand **Previsión** option shows outdoor temperatures for the next 168
+hours. The default remains **24 horas**, and **7 días atrás** displays observations.
+Forecast times use Europe/Madrid, including daylight-saving changes. Daily cards
+show minima/maxima within the displayed interval; incomplete days are marked
+**Parcial**. Predictions are currently unadjusted while forecast/observation pairs
+accumulate for a later, validated calibration model.
+
+`casa_fresca_forecast_config` stores the station coordinates and a private scheduler
+token. Configure its single row server-side; neither coordinates nor token are
+exposed by the app. `casa_fresca_forecast_runs` holds immutable Open-Meteo Best
+Match snapshots with their fetch time, location, model selection and hourly JSON.
+The fetch time is when we retrieved the forecast, not the model initialization time.
+Snapshots are retained for 38 days (30 days for evaluation plus forecast lead time).
+
+The `casa-fresca-forecast` Edge Function fetches eight UTC calendar days to cover
+seven days ahead even between refreshes. It validates all hourly temperatures
+before inserting one complete snapshot, deduplicates six-hour UTC slots and keeps
+the previous snapshot if fetching fails. The database cron job runs at 00:10,
+06:10, 12:10 and 18:10 UTC. `/api/forecast` reads the latest stored snapshot;
+opening the app does not call Open-Meteo. An open forecast view checks storage
+every five minutes and on returning to the tab; data older than 12 hours is labeled stale.
+
+The forecast function source is tracked and deployed separately:
+
+```bash
+supabase functions deploy casa-fresca-forecast --use-api
+supabase db push
+```
+
+The scheduler migration reuses the existing DavisStation monitor wrapper's gateway
+authentication and adds a private forecast-only token. It requires that existing
+wrapper and the `http` and `pg_cron` extensions. To fetch immediately after configuring
+the location, call `select public.call_casa_fresca_forecast();` as the database owner.
+Repeated calls in the same six-hour slot are skipped.
+
+Open-Meteo's free endpoint is for non-commercial use; provider attribution is shown
+below the forecast. See [API docs](https://open-meteo.com/en/docs) and
+[terms and pricing](https://open-meteo.com/en/pricing).
 
 ## Browser notifications
 
