@@ -17,12 +17,15 @@ export interface ChartDataPoint {
 const TemperatureChart = memo(({
   formattedData,
   showYesterdayOverlay,
-  forecast = false
+  forecast = false,
+  tomorrowTemperatures
 }: {
   formattedData: ChartDataPoint[]
   showYesterdayOverlay: boolean
   forecast?: boolean
+  tomorrowTemperatures?: Array<number | null>
 }) => {
+  const showTomorrow = showYesterdayOverlay && tomorrowTemperatures?.some(value => value !== null)
   
   const chartOptions = {
     chart: {
@@ -60,12 +63,12 @@ const TemperatureChart = memo(({
       }
     },
     stroke: {
-      width: showYesterdayOverlay ? [2, 2, 2, 2] : 2,
-      dashArray: forecast ? 5 : 0,
+      width: showTomorrow ? [2, 2, 2, 2, 2] : showYesterdayOverlay ? [2, 2, 2, 2] : 2,
+      dashArray: showTomorrow ? [0, 0, 0, 0, 5] : forecast ? 5 : 0,
       curve: 'monotoneCubic' as const
     },
     colors: showYesterdayOverlay
-      ? ['#C11818', '#589684', 'rgba(193, 24, 24, 0.22)', 'rgba(88, 150, 132, 0.22)']
+      ? ['#C11818', '#589684', 'rgba(193, 24, 24, 0.22)', 'rgba(88, 150, 132, 0.22)', 'rgba(193, 24, 24, 0.5)']
       : ['#C11818', '#589684'],
     grid: {
       show: true,
@@ -251,6 +254,10 @@ const TemperatureChart = memo(({
         data: formattedData.map(d => d.yesterdayIndoor)
       }
     )
+  }
+
+  if (showTomorrow && tomorrowTemperatures) {
+    chartSeries.push({ name: 'Exterior mañana', data: tomorrowTemperatures })
   }
 
   return (

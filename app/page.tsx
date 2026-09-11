@@ -4,6 +4,8 @@ import { useEffect, useState, useMemo, useCallback } from 'react'
 import Image from 'next/image'
 import { supabase } from '@/lib/supabase'
 import Forecast from '@/app/components/Forecast'
+import { useForecast } from '@/lib/useForecast'
+import { tomorrowOverlay } from '@/lib/tomorrowOverlay'
 
 import TemperatureChart, { type ChartDataPoint } from '@/app/components/TemperatureChart'
 
@@ -79,6 +81,7 @@ async function savePushSubscription(registration: ServiceWorkerRegistration) {
 }
 
 export default function Home() {
+  const { forecast, now: forecastNow } = useForecast()
   const [data, setData] = useState<TemperatureReading[]>([])
   const [loading, setLoading] = useState(true)
   const [timeRange, setTimeRange] = useState<'24h' | '7d' | 'forecast'>('24h')
@@ -219,6 +222,9 @@ export default function Home() {
   }
 
   const formattedData = useMemo(() => formatData(data), [data, timeRange])
+  const tomorrowTemperatures = useMemo(() => timeRange === '24h'
+    ? tomorrowOverlay(formattedData, forecast?.hourly || [], forecastNow)
+    : undefined, [formattedData, forecast, forecastNow, timeRange])
 
   const handleCatClick = useCallback(() => {
     setShowMiau(true)
@@ -472,9 +478,10 @@ export default function Home() {
 
         {/* Temperature chart */}
         <div className="p-0 md:px-4 lg:px-6">
-          {timeRange === 'forecast' ? <Forecast /> : <TemperatureChart
+          {timeRange === 'forecast' ? <Forecast forecast={forecast} now={forecastNow} /> : <TemperatureChart
             formattedData={formattedData}
             showYesterdayOverlay={timeRange === '24h'}
+            tomorrowTemperatures={tomorrowTemperatures}
           />}
 
           {/* Last updated timestamp */}
