@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from 'react'
 
 export type Point = { time: string; temperature: number }
-export type ForecastRun = { fetched_at: string; location_label: string; hourly: Point[] }
+export type ForecastRun = {
+  fetched_at: string; location_label: string; hourly: Point[]
+  calibration?: { status: string; horizons?: { leadDay: number; enabled: boolean }[] }
+}
 const hour = 3600000
 
 export function useForecast() {

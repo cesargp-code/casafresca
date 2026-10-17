@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:calibration": "node --experimental-strip-types --test tests/forecastCalibration.test.mjs",
+    "calibrate:forecast": "node --env-file=.env.local --experimental-strip-types scripts/calibrate-forecast.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.50.3",

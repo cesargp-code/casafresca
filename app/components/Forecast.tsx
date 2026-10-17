@@ -25,6 +25,7 @@ export default function Forecast({ forecast, now }: { forecast: ForecastRun | nu
     <>
       <TemperatureChart formattedData={formattedData} showYesterdayOverlay={false} forecast />
       <p className="text-center text-sm text-gray-500 mb-6">
+        {forecast?.calibration?.status === 'adjusted' && <>Con ajuste local · </>}
         actualizado a las {forecast ? new Date(forecast.fetched_at).toLocaleTimeString('es-ES', {
           hour: '2-digit', minute: '2-digit', hour12: false,
         }) : '--:--'}

@@ -33,9 +33,9 @@ gradually. The existing monitor source is gitignored and deployed separately fro
 The right-hand **Previsión** option shows outdoor temperatures for the next 168
 hours. The default remains **24 horas**, and **7 días atrás** displays observations.
 The forecast uses the same chart, tooltip, spacing and update timestamp as the
-historical view, with a dashed outdoor line. Predictions are currently unadjusted
-while forecast/observation pairs
-accumulate for a later, validated calibration model.
+historical view, with a dashed outdoor line. Predictions use local backyard adjustments for forecast lead ranges that pass
+forward validation. The forecast view labels these as **Con ajuste local**.
+The tomorrow overlay uses the same adjusted forecast response.
 
 `casa_fresca_forecast_config` stores the station coordinates and a private scheduler
 token. Configure its single row server-side; neither coordinates nor token are
@@ -68,6 +68,55 @@ Repeated calls in the same six-hour slot are skipped.
 Forecast data is provided by Open-Meteo (CC BY 4.0). Its free endpoint is for
 non-commercial use. See [API docs](https://open-meteo.com/en/docs) and
 [terms and pricing](https://open-meteo.com/en/pricing).
+
+## Local forecast calibration
+
+`/api/forecast` fits adjustments from the last 30 days of backyard observations
+and the stored forecast snapshots, cached for one hour or until a new snapshot
+arrives. All history reads are paginated. Original stored forecasts stay immutable;
+adjustments are applied only to the API response. Failed history reads fall back
+to the original forecast. No database migration or worker deployment is needed.
+
+Calibration excludes exact outdoor temperature plateaus lasting at least six hours
+(with at least eight readings), including the start of each plateau. Invalid
+readings and observation gaps over 30 minutes are also excluded from pairing.
+This detects the current Wi-Fi outage without a permanent calendar-date exclusion.
+It cannot detect every possible stale sensor value; future sensor timestamps would
+provide stronger freshness checks. Raw observation charts are unchanged.
+
+Each hourly observation is interpolated from adjacent valid readings and paired
+with the newest forecast **issued before that hour** in each 24-hour lead bucket.
+Each target hour counts once per bucket. Training uses completed Madrid calendar
+days with at least 20 paired hours, up to the most recent 14 qualifying days.
+Offsets are half the median observed-minus-forecast error in a circular three-hour
+window, capped at ±4°C, with at least seven days of support at every hour.
+
+The last seven qualifying days are checked with a rolling forward backtest. For
+each test day, the model uses only complete observation days before the earliest
+forecast issuance being evaluated, including for longer lead times. A lead bucket
+is enabled only with at least five validation days, improvement on at least 60%
+of those days, and a reduction in mean absolute error of both 0.1°C and 5%.
+These are provisional checks on a short history, not a guarantee of future skill.
+If valid station readings are more than seven days old, all adjustments switch off.
+The API includes calibration status, excluded intervals, offsets and validation
+metrics for inspection; unvalidated lead buckets keep the original temperatures.
+
+Run the calibration audit with Node 22.18+ and the existing `.env.local` credentials:
+
+```bash
+npm run calibrate:forecast
+npm run test:calibration
+```
+
+For a reproducible offline audit, provide a JSON file containing `readings` and
+`runs`, an evaluation time, and optionally an output path:
+
+```bash
+npm run calibrate:forecast -- --input /tmp/history.json --now 2026-10-17T09:30:00Z --output /tmp/calibration.json
+```
+
+The initial audit is recorded in [the calibration report](docs/forecast-calibration-2026-10-17.md)
+and its accompanying JSON. Subsequent API recalibrations use current data.
 
 ## Browser notifications
 
